@@ -1,1 +1,1 @@
-[{"AccountParameters":{"Username":"Bob","Password":"1234"},"Money":0.0}]
+[{"Username":"Bob","Password":"1234","Money":0.0},{"Username":"string","Password":"string","Money":0.0},{"Username":"string","Password":"string","Money":0.0},{"Username":"123","Password":"123","Money":0.0}]

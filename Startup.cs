@@ -5,12 +5,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
+using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
+using WebAPITs.Models;
 
 namespace WebAPITs
 {
@@ -36,6 +39,8 @@ namespace WebAPITs
         {
             var physicalProvider = _hostingEnvironment.ContentRootFileProvider;
             services.AddSingleton<IFileProvider>(physicalProvider);
+
+            services.AddDbContext<AccountContext>(opt => opt.UseInMemoryDatabase());
             // Add framework services.
             services.AddMvc();
 
@@ -51,7 +56,7 @@ namespace WebAPITs
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IApplicationLifetime applicationLifetime)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
@@ -68,6 +73,27 @@ namespace WebAPITs
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
+
+            applicationLifetime.ApplicationStarted.Register(() =>
+            {
+                var file = app.ApplicationServices.GetService<IFileProvider>().GetFileInfo("accounts.json");
+                if (file.Exists)
+                {
+                    var db = app.ApplicationServices.GetService<AccountContext>();
+                    var json = File.ReadAllText(file.PhysicalPath);
+                    var accounts = JsonConvert.DeserializeObject<List<Account>>(json);
+                    db.Accounts.AddRange(accounts);
+                    db.SaveChanges();
+                }
+            });
+
+            applicationLifetime.ApplicationStopping.Register(() =>
+            {
+                var db = app.ApplicationServices.GetService<AccountContext>();
+                var accounts = db.Accounts.ToList();
+                var file = app.ApplicationServices.GetService<IFileProvider>().GetFileInfo("accounts.json");
+                File.WriteAllText(file.PhysicalPath, JsonConvert.SerializeObject(accounts.Select(x => new {x.Username, x.Password, x.Money})));
             });
         }
     }

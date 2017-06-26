@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using System.IO;
-using Microsoft.Extensions.FileProviders;
 using WebAPITs.Models;
 
 namespace WebAPITs.Controllers
@@ -14,92 +9,56 @@ namespace WebAPITs.Controllers
     [Route("api/[controller]")]
     public class AccountController : Controller
     {
-        private readonly IFileProvider _fileProvider;
+        private readonly AccountContext _context;
 
-        public AccountController(IFileProvider fileProvider)
+        public AccountController(AccountContext context)
         {
-            _fileProvider = fileProvider;
+            _context = context;
+
+            if (!_context.Accounts.Any())
+            {
+                _context.Accounts.Add(new Account()
+                {
+                    Username = "Bob",
+                    Password = "123",
+                    Money = 0
+                });
+                _context.SaveChanges();
+            }
         }
 
         /// <summary>
         /// Get a list of all users
         /// </summary>
         /// <returns>List of all users</returns>
-        [Route("AllUsers")]
         [HttpGet]
-        public IEnumerable<string> GetAllUsers()
+        public IEnumerable<Account> GetAll()
         {
-            SqlConnection connection = new SqlConnection();
-            //connection.op
-
-            var settingsFile = _fileProvider.GetFileInfo("accounts.json");
-            if (!settingsFile.Exists)
-            {
-                yield break;
-            }
-
-            var serializer = new JsonSerializer();
-
-            using (var fs = settingsFile.CreateReadStream())
-            using (var sr = new StreamReader(fs))
-            using (var jsonTextReader = new JsonTextReader(sr))
-            {
-                var accounts = serializer.Deserialize<List<Account>>(jsonTextReader);
-                if (accounts == null)
-                {
-                    yield break;
-                }
-                foreach (var account in accounts)
-                {
-                    if (account?.AccountParameters?.Username != null)
-                    {
-
-                        yield return account.AccountParameters.Username;
-                    }
-                }
-            }
+            return _context.Accounts.ToList();
         }
 
-        [Route("Add")]
-        [HttpPost]
-        public void AddUser([FromBody] LoginParameters param)
+        [HttpGet("{id}", Name = "GetAccount")]
+        public IActionResult GetById(int id)
         {
-            var settingsFile = _fileProvider.GetFileInfo("accounts.json");
-            if (!settingsFile.Exists)
+            var item = _context.Accounts.FirstOrDefault(t => t.Id == id);
+            if (item == null)
             {
-                List<Account> accounts = new List<Account>
-                {
-                    new Account()
-                    {
-                        AccountParameters = param,
-                        Money = 0
-                    }
-                };
-                System.IO.File.WriteAllText(settingsFile.PhysicalPath, JsonConvert.SerializeObject(accounts));
-                return;
+                return NotFound();
             }
-            else
-            {
-                List<Account> accounts = null;
-                var serializer = new JsonSerializer();
+            return new ObjectResult(item);
+        }
 
-                using (var fs = settingsFile.CreateReadStream())
-                using (var sr = new StreamReader(fs))
-                using (var jsonTextReader = new JsonTextReader(sr))
-                {
-                    accounts = serializer.Deserialize<List<Account>>(jsonTextReader);
-                    if (accounts == null)
-                    {
-                        return;
-                    }
-                    accounts.Add(new Account()
-                    {
-                        AccountParameters = param,
-                        Money = 0
-                    });
-                }
-                System.IO.File.WriteAllText(settingsFile.PhysicalPath, JsonConvert.SerializeObject(accounts));
+        [HttpPost]
+        public async Task<IActionResult> AddUser([FromBody] Account param)
+        {
+            if (param == null)
+            {
+                return BadRequest();
             }
+
+            _context.Accounts.Add(param);
+            await _context.SaveChangesAsync();
+            return CreatedAtRoute("GetAccount", new { id = param.Id}, param);
         }
     }
 }

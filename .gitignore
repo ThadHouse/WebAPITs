@@ -303,3 +303,4 @@ $RECYCLE.BIN/
 *.lnk
 wwwroot/scripts.js.map
 wwwroot/scripts.js
+accounts.json
