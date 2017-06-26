@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,9 @@ namespace WebAPITs.Controllers
         [HttpGet]
         public IEnumerable<string> GetAllUsers()
         {
+            SqlConnection connection = new SqlConnection();
+            //connection.op
+
             var settingsFile = _fileProvider.GetFileInfo("accounts.json");
             if (!settingsFile.Exists)
             {

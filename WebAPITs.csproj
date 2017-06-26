@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="wwwroot\default.html" />
+    <Content Include="wwwroot\file.ts" />
     <Content Include="wwwroot\index.html" />
     <Content Include="wwwroot\scripts.js" />
   </ItemGroup>
