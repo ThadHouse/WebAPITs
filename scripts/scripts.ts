@@ -1,5 +1,5 @@
 ﻿"use strict";
 
 function moveToSwagger() {
-    window.location.href = "swagger";
+    window.location.href = "help";
 }
